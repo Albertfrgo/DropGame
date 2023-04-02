@@ -8,8 +8,12 @@ import com.mygdx.game.MyGdxGame;
 public class DesktopLauncher {
 	public static void main (String[] arg) {
 		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
+		config.setTitle("DropGame");
+		// Establim la mida de finestra a 800, 480, he establert que no es pugui canviar la mida
+		config.setWindowedMode(800, 480);
+		config.useVsync(true);
+		config.setResizable(false);
 		config.setForegroundFPS(60);
-		config.setTitle("My GDX Game");
 		new Lwjgl3Application(new MyGdxGame(), config);
 	}
 }
