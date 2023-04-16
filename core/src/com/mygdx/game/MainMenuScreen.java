@@ -50,13 +50,17 @@ public class MainMenuScreen implements Screen{
         float textWidth = layout.width;
         float textHeight = layout.height;
 
-        // Draw the text centered within the viewport
-        game.font.draw(game.batch, "Welcome to Drop Game",(vportWidth - textWidth) / 2, (vportHeight + textHeight) / 2);
+        game.font.draw(game.batch, "Welcome to Drop Game",(vportWidth - textWidth) / 2, (vportHeight + textHeight +100) / 2);
 
+        game.font.getData().setScale(1);
+        layout = new GlyphLayout();
+        layout.setText(game.font, "Tap anywhere to begin");
+        textWidth = layout.width;
+        textHeight = layout.height;
 
         /*Fi del codi d'intent */
 
-        game.font.draw(game.batch, "Tap anywhere to begin", vportWidth/2 -100, vportHeight -400);
+        game.font.draw(game.batch, "Tap anywhere to begin", (vportWidth - textWidth) / 2, (vportHeight + textHeight -100) / 2);
         game.batch.end();
 
         //Quan el jugador toqui algun punt de la pantalla comencem el joc,

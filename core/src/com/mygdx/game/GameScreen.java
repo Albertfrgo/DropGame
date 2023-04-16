@@ -21,7 +21,6 @@ import com.badlogic.gdx.utils.TimeUtils;
 // ja que a mes d'ampliar funcionalitats, hem dividit aquestes funcionalitats en diverses classes
 public class GameScreen implements Screen{
     final Drop game;
-
     Texture dropImage;
     Texture bucketImage;
     Sound dropSound;
@@ -32,16 +31,29 @@ public class GameScreen implements Screen{
     long lastDropTime;
     int dropsGathered;
     private int vportWidth = 800, vportHeight =480, bucketSize =64, dropSize =64;
+    private Rectangle dropLower;
+    private int dropGenerationTime;
+    private int level;
+    private int newLevelRequired;
+    private int dropSpeed;
+    private Texture background;
+
+    private PlayAgainScreen playAgain;
+
+    Sound dropSoundOut;
 
     public GameScreen(final Drop game){
         this.game = game;
+        playAgain = new PlayAgainScreen(game);
 
+        background = new Texture(Gdx.files.internal("background.png"));
         //Carreguem les imatges del cubell i la gota, seran quadrats de 64 pixels
         bucketImage = new Texture(Gdx.files.internal("bucketSprite.png"));
         dropImage = new Texture(Gdx.files.internal("dropSprite.png"));
 
         //Carreguem els efectes de caiguda de la gota i de pluja
         dropSound = Gdx.audio.newSound(Gdx.files.internal("dropSound.wav"));
+        dropSoundOut = Gdx.audio.newSound(Gdx.files.internal("dropSoundOut.wav"));
         rainMusic = Gdx.audio.newMusic(Gdx.files.internal("rainSound.mp3"));
         rainMusic.setLooping(true);
 
@@ -55,9 +67,40 @@ public class GameScreen implements Screen{
         bucket.width = bucketSize;
         bucket.height = bucketSize;
 
+        dropGenerationTime = 1000000000;
+        level = 1;
+        newLevelRequired = 5;
+        dropSpeed = 100;
+
         //Comencem a generar gotes
         raindrops = new Array<Rectangle>();
         spawnRaindrop();
+    }
+
+    //Funcio per pujar de nivell fins a un maxim de nivell 4, a cada pujada augmenta
+    // la taxa de generació de gotes i la velocitat a la que van
+    private void levelUp(){
+        switch (level){
+            case 1:
+                level = 2;
+                dropGenerationTime = 800000000;
+                newLevelRequired = 10;
+                dropSpeed += 50;
+                break;
+            case 2:
+                level = 3;
+                dropGenerationTime = 600000000;
+                newLevelRequired = 25;
+                dropSpeed += 50;
+                break;
+            case 3:
+                level = 4;
+                dropGenerationTime = 500000000;
+                dropSpeed += 75;
+                break;
+            default:
+                break;
+        }
     }
 
     //Metode que ens una gota aleatoriament al llarg de tot l'ample, a la part superior
@@ -81,8 +124,15 @@ public class GameScreen implements Screen{
 
         game.batch.setProjectionMatrix(camera.combined);
         game.batch.begin();
-        game.font.draw(game.batch, "Drops Collected: " +dropsGathered, 0, 480);
+        game.batch.draw(background, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        game.font.draw(game.batch, "Drops Collected: " +dropsGathered, 20, vportHeight-20);
+        if((newLevelRequired - dropsGathered) > 0){
+            game.font.draw(game.batch, "Current Level: " +level+". Drops left to level up: "+(newLevelRequired - dropsGathered), 400, vportHeight-20);
+        }else{
+            game.font.draw(game.batch, "Current Level: " +level+". At max Level!", 400, vportHeight-20);
+        }
         game.batch.draw(bucketImage, bucket.x, bucket.y, bucket.width, bucket.height);
+
         for(Rectangle raindrop: raindrops){
             game.batch.draw(dropImage, raindrop.x, raindrop.y);
         }
@@ -114,7 +164,7 @@ public class GameScreen implements Screen{
         }
 
         // Veure si necessitem crear una nova gota
-        if(TimeUtils.nanoTime() - lastDropTime > 750000000){
+        if(TimeUtils.nanoTime() - lastDropTime > dropGenerationTime){
             spawnRaindrop();
         }
 
@@ -123,17 +173,30 @@ public class GameScreen implements Screen{
         Iterator <Rectangle> iter = raindrops.iterator();
         while (iter.hasNext()){
             Rectangle raindrop = iter.next();
-            raindrop.y -= 200 * Gdx.graphics.getDeltaTime();
+            raindrop.y -= dropSpeed * Gdx.graphics.getDeltaTime();
             if (raindrop.y + dropSize < 0){
                 iter.remove();
+                dropSoundOut.play(1f, 0.25f, 0.5f);
+                rainMusic.stop();
+                playAgain.setScore(dropsGathered);
+                game.setScreen(playAgain);
+                /*game.dispose();*/
             }
-            if (raindrop.overlaps(bucket)){
+            /*Per recollir la gota, aquesta no nomes te que estar sobreposada a la galleda com
+            fins ara, sino que a mes la seva part inferior te que estar per sobre de la meitat superior
+            de la galleda
+            */
+            if (raindrop.y > (bucket.y +bucket.height/1.5) &&  raindrop.overlaps(bucket)){
                 dropsGathered++;
+                if (dropsGathered >= newLevelRequired){
+                    levelUp();
+                }
                 dropSound.play();
                 iter.remove();
             }
         }
     }
+
 
     public void resize(int width, int height) {
 
@@ -156,5 +219,6 @@ public class GameScreen implements Screen{
         bucketImage.dispose();
         dropSound.dispose();
         rainMusic.dispose();
+        playAgain.dispose();
     }
 }
